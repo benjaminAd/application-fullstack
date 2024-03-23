@@ -1,0 +1,29 @@
+{
+  "name": "Application Fullstack",
+  "dockerComposeFile": "./docker-compose.yml",
+  "service": "app",
+  "workspaceFolder": "/workspace/",
+  "customizations": {
+    // Configure properties specific to VS Code.
+    "vscode": {
+      "settings": {
+        "terminal.integrated.profiles.linux": {
+          "bash": {
+            "path": "/usr/bin/zsh",
+            "icon": "terminal-bash"
+          }
+        }
+      },
+      // Add the IDs of extensions you want installed when the container is created.
+      "extensions": [
+        "Angular.ng-template",
+        "Mikael.Angular-BeastCode",
+        "cyrilletuzi.angular-schematics",
+        "ms-vscode.vscode-typescript-next",
+        "VisualStudioExptTeam.vscodeintellicode",
+        "mhutchie.git-graph",
+        "ms-azuretools.vscode-docker"
+      ]
+    }
+  }
+}
