@@ -3,18 +3,17 @@ version: '3.8'
 services:
   reverse-proxy:
     image: traefik:latest
-    command: --api.insecure=true --providers.docker
+    command: --api.insecure=true --providers.docker --entrypoints.web.address=:80
+    ports:
+      - "80:80"
+      - "8080:8080"
     networks:
       - application-node
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.traefik.rule=Host(`traefik.localhost`)"
-      - "traefik.http.services.traefik.loadbalancer.server.port=8080"
-    ports:
-      # The HTTP port
-      - "80:80"
-      # The Web UI (enabled by --api.insecure=true)
-      - "8080:8080"
+      - "traefik.http.routers.traefik-dashboard.rule=Host(`traefik.localhost`)"
+      - "traefik.http.routers.traefik-dashboard.entrypoints=web"
+      - "traefik.http.routers.traefik-dashboard.service=api@internal"
     volumes:
       # So that Traefik can listen to the Docker events
       - /var/run/docker.sock:/var/run/docker.sock
@@ -27,8 +26,11 @@ services:
     command: sleep infinity
     networks:
       - application-node
+    depends_on:
+      - keycloak
+      - reverse-proxy
 
-  db:
+  keydb:
     image: postgres:latest
     restart: unless-stopped
     volumes:
@@ -36,10 +38,38 @@ services:
     networks:
       - application-node
     environment:
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_USER: postgres
-      POSTGRES_DB: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_DB: ${POSTGRES_DB}
+    labels:
+      - "traefik.enable=false"
+    depends_on:
+      - reverse-proxy
 
+  keycloak:
+    image: quay.io/keycloak/keycloak:latest
+    command: [ "start-dev" ]
+    restart: unless-stopped
+    environment:
+      DB_VENDOR: postgres
+      DB_ADDR: db
+      DB_DATABASE: ${POSTGRES_DB}
+      DB_USER: ${POSTGRES_USER}
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
+    networks:
+      - application-node
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.keycloak.rule=Host(`keycloak.localhost`)"
+      - "traefik.http.routers.keycloak.entrypoints=web"
+      - "traefik.http.services.keycloak.loadbalancer.server.port=8080"
+    volumes:
+      - ./data:/opt/jboss/keycloak/standalone/data
+    depends_on:
+      - keydb
+      - reverse-proxy
 volumes:
   postgres-data:
 networks:
