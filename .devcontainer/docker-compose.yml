@@ -26,6 +26,11 @@ services:
     command: sleep infinity
     networks:
       - application-node
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.app.rule=Host(`application.localhost`)"
+      - "traefik.http.routers.app.entrypoints=web"
+      - "traefik.http.services.app.loadbalancer.server.port=4200"
     depends_on:
       - keycloak
       - reverse-proxy
